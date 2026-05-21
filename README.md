@@ -26,6 +26,7 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 
 ## Endpoints de la API
 
+- **`POST /api/auth/register`** — Registrar un nuevo usuario con rol User (público)
 - **`POST /api/auth/login`** — Iniciar sesión y obtener JWT (público)
 - **`GET /api/products`** — Listar todos los productos (requiere autenticación)
 - **`GET /api/products/{id}`** — Obtener un producto por ID (requiere autenticación)
@@ -34,6 +35,15 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 - **`DELETE /api/products/{id}`** — Eliminar un producto (requiere rol Admin)
 
 ### Ejemplos de uso
+
+**Registro** — `POST /api/auth/register`
+```json
+{
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "password": "MiPassword123!"
+}
+```
 
 **Login** — `POST /api/auth/login`
 ```json

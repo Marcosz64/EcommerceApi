@@ -30,4 +30,19 @@ public class AuthController : ControllerBase
 
         return Ok(new { token });
     }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterRequestDto request,
+        CancellationToken ct)
+    {
+        var token = await _mediator.Send(
+            new RegisterCommand(request.Name, request.Email, request.Password),
+            ct);
+
+        if (token is null)
+            return Conflict(new { message = "El email ya está registrado" });
+
+        return Ok(new { token });
+    }
 }
