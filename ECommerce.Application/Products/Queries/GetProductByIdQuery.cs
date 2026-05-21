@@ -1,0 +1,6 @@
+using ECommerce.Application.DTOs;
+using MediatR;
+
+namespace ECommerce.Application.Products.Queries;
+
+public record GetProductByIdQuery(Guid Id) : IRequest<ProductResponseDto?>;
