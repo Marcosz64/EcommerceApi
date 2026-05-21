@@ -1,190 +1,189 @@
-﻿# ECommerce
+﻿# ECommerce API
 
-## Descripción general
-
-ECommerce es una solución .NET 8 para una tienda en línea simple que ofrece una API REST para gestionar productos. El sistema está organizado en cuatro proyectos con una arquitectura en capas: API, Application, Domain e Infrastructure.
-
-## Arquitectura del proyecto
-
-La solución se compone de los siguientes proyectos:
-
-- `ECommerce.Api` - API Web ASP.NET Core 8 que expone los endpoints de productos y la ruta de prueba `WeatherForecast`.
-- `ECommerce.Application` - capa de aplicación que contiene servicios, DTOs y contratos (interfaces) para la lógica de negocios.
-- `ECommerce.Domain` - capa de dominio que define las entidades de negocio, incluyendo la entidad `Product`.
-- `ECommerce.Infrastructure` - capa de infraestructura que implementa el acceso a datos con Entity Framework Core y SQLite.
+API REST para gestión de productos desarrollada en .NET 8 con arquitectura limpia (Clean Architecture), CQRS con MediatR, Entity Framework Core y SQLite.
 
 ## Stack tecnológico
 
 - .NET 8
 - ASP.NET Core Web API
-- Entity Framework Core 8
-- SQLite
+- Entity Framework Core 8 + SQLite
 - Swagger / OpenAPI
-- MediatR (dependencia de capas)
-- Autenticación JWT referenciada en el proyecto API (paquete instalado)
+- MediatR (CQRS)
+- Autenticación JWT Bearer
+- BCrypt.Net-Next
 
-## Proyectos y responsabilidades
+## Arquitectura del proyecto
 
-### `ECommerce.Api`
+```
+ECommerce.sln
+├── ECommerce.Api          — API Web (controladores, Program.cs)
+├── ECommerce.Application  — Casos de uso, DTOs, interfaces, comandos/consultas CQRS
+├── ECommerce.Domain       — Entidades de negocio y reglas de dominio
+└── ECommerce.Infrastructure — Persistencia (EF Core), repositorios, servicios externos
+```
 
-- `Program.cs` configura el pipeline de aplicación.
-- Registra servicios comunes: controladores, Swagger y el middleware HTTPS.
-- Inyecta los módulos de aplicación e infraestructura con:
-  - `builder.Services.AddApplication();`
-  - `builder.Services.AddInfrastructure(builder.Configuration);`
-- Presenta dos controladores:
-  - `ProductsController` con CRUD completo para productos.
-  - `WeatherForecastController` para un ejemplo de respuesta JSON.
-
-### `ECommerce.Application`
-
-- Define los DTOs de transferencia de datos:
-  - `CreateProductDto`
-  - `UpdateProductDto`
-  - `ProductResponseDto`
-- Define los contratos:
-  - `IProductService` para la lógica de negocio de productos.
-  - `IProductRepository` para el acceso a datos.
-- Implementa la lógica de negocio en `ProductService`:
-  - `GetAllAsync`
-  - `GetByIdAsync`
-  - `CreateAsync`
-  - `UpdateAsync`
-  - `DeleteAsync`
-- Registra la implementación con `AddScoped<IProductService, ProductService>()`.
-
-### `ECommerce.Domain`
-
-- Define la entidad `Product` con propiedades:
-  - `Id`
-  - `Name`
-  - `Description`
-  - `Price`
-  - `Stock`
-  - `CreatedAt`
-- Implementa reglas de dominio en el constructor y el método `Update`:
-  - El nombre es obligatorio.
-  - El precio no puede ser negativo.
-  - El stock no puede ser negativo.
-
-### `ECommerce.Infrastructure`
-
-- Implementa `ApplicationDbContext` con `DbSet<Product>`.
-- Aplica configuraciones de EF Core en `ProductConfiguration`:
-  - Tabla `Products`
-  - `Name` requerido y con longitud máxima 200
-  - `Description` longitud máxima 2000
-  - `Price` tipo `decimal(18,2)`
-  - Índice en `Name`
-- `ProductRepository` implementa `IProductRepository` con EF Core.
-- Registra la dependencia de la base de datos SQLite y el repositorio.
-- Archivo `appsettings.json` define la cadena de conexión:
-  - `DefaultConnection: Data Source=ecommerce.db`
-
-## Base de datos y persistencia
-
-- `ECommerce.Infrastructure` usa SQLite.
-- La conexión se configura en `ECommerce.Api` desde `appsettings.json`.
-- Si no existe, EF Core crea el archivo `ecommerce.db` al ejecutar la aplicación.
-- La migración inicial se encuentra en `ECommerce.Infrastructure/Migrations/20260521035756_InitialCreate.*`.
+Los controladores usan **MediatR** para enviar comandos y consultas. Cada operación CRUD tiene su propio `IRequest` y `IRequestHandler` en la capa Application.
 
 ## Endpoints de la API
 
-### Productos
+- **`POST /api/auth/login`** — Iniciar sesión y obtener JWT (público)
+- **`GET /api/products`** — Listar todos los productos (requiere autenticación)
+- **`GET /api/products/{id}`** — Obtener un producto por ID (requiere autenticación)
+- **`POST /api/products`** — Crear un producto (requiere rol Admin)
+- **`PUT /api/products/{id}`** — Actualizar un producto existente (requiere rol Admin)
+- **`DELETE /api/products/{id}`** — Eliminar un producto (requiere rol Admin)
 
-- `GET /api/products`
-  - Obtiene todos los productos.
-- `GET /api/products/{id}`
-  - Obtiene un producto por su identificador GUID.
-- `POST /api/products`
-  - Crea un nuevo producto.
-  - Ejemplo de cuerpo JSON:
-    ```json
-    {
-      "name": "Nombre del producto",
-      "description": "Descripción del producto",
-      "price": 49.99,
-      "stock": 10
-    }
-    ```
-- `PUT /api/products/{id}`
-  - Actualiza un producto existente.
-  - Ejemplo de cuerpo JSON:
-    ```json
-    {
-      "name": "Nombre actualizado",
-      "description": "Descripción actualizada",
-      "price": 59.99,
-      "stock": 5
-    }
-    ```
-- `DELETE /api/products/{id}`
-  - Elimina un producto.
+### Ejemplos de uso
 
-### WeatherForecast
+**Login** — `POST /api/auth/login`
+```json
+{
+  "email": "admin@test.com",
+  "password": "Admin123!"
+}
+```
 
-- `GET /WeatherForecast`
-  - Devuelve datos de pronóstico del tiempo de ejemplo.
+**Crear producto** — `POST /api/products` (requiere rol Admin)
+```json
+{
+  "name": "Laptop Gamer",
+  "description": "Laptop de alto rendimiento",
+  "price": 1499.99,
+  "stock": 10
+}
+```
 
-## Flujo de ejecución
+**Actualizar producto** — `PUT /api/products/{id}` (requiere rol Admin)
+```json
+{
+  "name": "Nombre actualizado",
+  "description": "Descripción actualizada",
+  "price": 59.99,
+  "stock": 5
+}
+```
 
-1. El usuario hace una solicitud HTTP al controlador.
-2. El controlador llama a `IProductService`.
-3. La implementación `ProductService` usa `IProductRepository`.
-4. `ProductRepository` accede a la base de datos SQLite a través de `ApplicationDbContext`.
-5. La respuesta se transforma en `ProductResponseDto` y se devuelve como JSON.
+**Eliminar producto** — `DELETE /api/products/{id}` (requiere rol Admin)
+
+## Cómo ejecutar el proyecto desde cero
+
+### Prerrequisitos
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Git
+
+### Pasos
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone <url-del-repositorio>
+   cd ECommerce
+   ```
+
+2. **Restaurar paquetes NuGet**
+   ```bash
+   dotnet restore
+   ```
+
+3. **Construir la solución**
+   ```bash
+   dotnet build
+   ```
+
+4. **Ejecutar la API**
+   ```bash
+   dotnet run --project ECommerce.Api\ECommerce.Api.csproj
+   ```
+   La base de datos SQLite (`ecommerce.db`) se crea automáticamente al iniciar por primera vez gracias a las migraciones de EF Core.
+
+5. **Abrir Swagger**
+   ```
+   https://localhost:5001/swagger
+   ```
+   (o la URL que muestre la consola al ejecutar)
+
+6. **Probar los endpoints**
+   - Al iniciar la API por primera vez, se crea automáticamente un usuario administrador con las siguientes credenciales:
+     - **Email:** `admin@test.com`
+     - **Contraseña:** `Admin123!`
+   - Todos los endpoints de productos requieren autenticación. Para obtener un token JWT:
+     1. Haz `POST /api/auth/login` con las credenciales de arriba.
+     2. Copia el token de la respuesta.
+     3. En Swagger, haz clic en **Authorize** y pega `Bearer <tu-token>`.
+   - Con el token autenticado puedes probar todos los `GET`.
+   - Para `POST`, `PUT` y `DELETE` de productos se necesita además el rol **Admin** (el usuario de prueba ya lo tiene).
+
+## Base de datos
+
+- SQLite (archivo `ecommerce.db` en la carpeta del proyecto).
+- La conexión se configura en `ECommerce.Api/appsettings.json`.
+- Las migraciones de EF Core están en `ECommerce.Infrastructure/Migrations/`. Se aplican automáticamente al iniciar la aplicación.
+- Al iniciar por primera vez, si no existe un usuario `admin@test.com`, se crea uno con rol **Admin** automáticamente.
+
+## Autenticación JWT
+
+- El proyecto incluye autenticación JWT preconfigurada para desarrollo (`appsettings.json`).
+- No es necesario generar certificados ni configurar claves externas.
+- El token se obtiene mediante `POST /api/auth/login` y expira según el valor de `Jwt:ExpirationHours` (1 hora por defecto).
 
 ## Estructura de carpetas clave
 
-- `ECommerce.Api/`
-  - `Program.cs`
-  - `Controllers/ProductsController.cs`
-  - `Controllers/WeatherForecastController.cs`
-  - `appsettings.json`
-- `ECommerce.Application/`
-  - `DTOs/`
-  - `Interfaces/`
-  - `Services/ProductService.cs`
-- `ECommerce.Domain/`
-  - `Entities/Product.cs`
-- `ECommerce.Infrastructure/`
-  - `Persistence/ApplicationDbContext.cs`
-  - `Persistence/Configurations/ProductConfiguration.cs`
-  - `Repositories/ProductRepository.cs`
-  - `Migrations/`
+```
+ECommerce.Api/
+├── Controllers/
+│   ├── AuthController.cs
+│   └── ProductsController.cs
+├── Program.cs
+└── appsettings.json
+
+ECommerce.Application/
+├── DTOs/
+│   ├── CreateProductDto.cs
+│   ├── UpdateProductDto.cs
+│   └── ProductResponseDto.cs
+├── Interfaces/
+│   ├── IProductRepository.cs
+│   ├── IProductService.cs
+│   └── ITokenService.cs
+├── Services/
+│   └── ProductService.cs
+└── Products/
+    ├── Commands/
+    │   ├── CreateProductCommand.cs
+    │   ├── CreateProductCommandHandler.cs
+    │   ├── UpdateProductCommand.cs
+    │   ├── UpdateProductCommandHandler.cs
+    │   ├── DeleteProductCommand.cs
+    │   └── DeleteProductCommandHandler.cs
+    └── Queries/
+        ├── GetAllProductsQuery.cs
+        ├── GetAllProductsQueryHandler.cs
+        ├── GetProductByIdQuery.cs
+        └── GetProductByIdQueryHandler.cs
+
+ECommerce.Domain/
+└── Entities/
+    ├── Product.cs
+    └── User.cs
+
+ECommerce.Infrastructure/
+├── Persistence/
+│   ├── ApplicationDbContext.cs
+│   └── Configurations/
+│       ├── ProductConfiguration.cs
+│       └── UserConfiguration.cs
+├── Repositories/
+│   ├── ProductRepository.cs
+│   └── UserRepository.cs
+├── Services/
+│   └── JwtTokenService.cs
+└── Migrations/
+```
 
 ## Dependencias principales
 
-- `Microsoft.NET.Sdk.Web`
-- `Microsoft.EntityFrameworkCore` / `Microsoft.EntityFrameworkCore.Sqlite`
-- `Microsoft.EntityFrameworkCore.Design`
-- `Microsoft.EntityFrameworkCore.Tools`
-- `Swashbuckle.AspNetCore`
-- `MediatR`
 - `Microsoft.AspNetCore.Authentication.JwtBearer`
+- `Microsoft.EntityFrameworkCore` / `Microsoft.EntityFrameworkCore.Sqlite`
+- `MediatR`
+- `Swashbuckle.AspNetCore`
 - `BCrypt.Net-Next`
-
-## Cómo ejecutar el proyecto
-
-1. Abrir la solución `ECommerce.sln` en Visual Studio o usar la CLI de .NET.
-2. Restaurar paquetes: `dotnet restore`.
-3. Construir: `dotnet build`.
-4. Ejecutar la API:
-   - `dotnet run --project ECommerce.Api\ECommerce.Api.csproj`
-5. Abrir Swagger:
-   - `https://localhost:5001/swagger` (o la URL mostrada en la salida de la consola).
-
-## Notas adicionales
-
-- La aplicación usa `app.UseHttpsRedirection()` y `app.UseAuthorization()`.
-- Swagger se habilita solo en entornos de desarrollo.
-- El proyecto está diseñado para ampliar fácilmente nuevas entidades y servicios.
-- Si se desea agregar autenticación real, se debe configurar la autenticación JWT en `Program.cs` y en los controladores.
-
-## Posibles mejoras
-
-- Añadir validación a los DTOs con `FluentValidation` o atributos de datos.
-- Implementar pruebas unitarias e integración.
-- Agregar manejo de errores global con middleware de excepción.
-- Extender la API a categorías, usuarios y pedidos.
-- Mejorar la arquitectura con CQRS y MediatR para comandos y consultas.

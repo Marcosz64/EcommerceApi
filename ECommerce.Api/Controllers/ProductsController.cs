@@ -52,4 +52,38 @@ public class ProductsController : ControllerBase
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto, CancellationToken ct)
+    {
+        var command = new UpdateProductCommand(
+            id,
+            dto.Name,
+            dto.Description,
+            dto.Price,
+            dto.Stock
+        );
+
+        var updated = await _mediator.Send(command, ct);
+
+        if (updated is null)
+            return NotFound();
+
+        return Ok(updated);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var command = new DeleteProductCommand(id);
+
+        var deleted = await _mediator.Send(command, ct);
+
+        if (!deleted)
+            return NotFound();
+
+        return NoContent();
+    }
 }
