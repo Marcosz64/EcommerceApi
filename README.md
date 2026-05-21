@@ -87,7 +87,7 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 1. **Clonar el repositorio**
    ```bash
    git clone <url-del-repositorio>
-   cd ECommerce
+   cd ECommerceApi
    ```
 
 2. **Restaurar paquetes NuGet**
