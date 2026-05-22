@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ECommerce.Application.Behaviors;
+using ECommerce.Application.Products.Validators;
+using FluentValidation;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,10 +55,15 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// MediatR: registra Commands, Queries y Handlers de Application
+builder.Services.AddValidatorsFromAssemblyContaining<CreateProductValidator>();
+
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(CreateProductCommand).Assembly);
+
+    cfg.AddBehavior(
+        typeof(IPipelineBehavior<,>),
+        typeof(ValidationBehavior<,>));
 });
 
 // Servicios propios

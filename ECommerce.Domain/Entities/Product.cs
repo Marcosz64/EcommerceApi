@@ -30,6 +30,17 @@ public class Product
         CreatedAt = DateTime.UtcNow;
     }
 
+    public void ReduceStock(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("La cantidad debe ser mayor a cero.");
+
+        if (quantity > Stock)
+            throw new InvalidOperationException($"Stock insuficiente. Stock disponible: {Stock}");
+
+        Stock -= quantity;
+    }
+
     public void Update(string name, string description, decimal price, int stock)
     {
         if (string.IsNullOrWhiteSpace(name))

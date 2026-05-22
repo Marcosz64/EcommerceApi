@@ -1,0 +1,32 @@
+using ECommerce.Application.Products.Commands;
+using FluentValidation;
+
+namespace ECommerce.Application.Products.Validators;
+
+public class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
+{
+    public UpdateProductValidator()
+    {
+        RuleFor(x => x.Id)
+            .NotEmpty()
+            .WithMessage("El ID del producto es obligatorio");
+
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("El nombre del producto es obligatorio")
+            .MaximumLength(100)
+            .WithMessage("El nombre no puede superar 100 caracteres");
+
+        RuleFor(x => x.Description)
+            .MaximumLength(500)
+            .WithMessage("La descripción no puede superar 500 caracteres");
+
+        RuleFor(x => x.Price)
+            .GreaterThan(0)
+            .WithMessage("El precio debe ser mayor a cero");
+
+        RuleFor(x => x.Stock)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("El stock no puede ser negativo");
+    }
+}

@@ -1,4 +1,4 @@
-﻿namespace ECommerce.Application;
+namespace ECommerce.Application;
 
 public class Class1
 {

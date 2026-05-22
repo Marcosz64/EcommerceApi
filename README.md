@@ -1,6 +1,6 @@
 ﻿# ECommerce API
 
-API REST para gestión de productos desarrollada en .NET 8 con arquitectura limpia (Clean Architecture), CQRS con MediatR, Entity Framework Core y SQLite.
+API REST para gestión de productos y órdenes de compra desarrollada en .NET 8 con arquitectura limpia (Clean Architecture), CQRS con MediatR, validación con FluentValidation, Entity Framework Core y SQLite.
 
 ## Stack tecnológico
 
@@ -9,6 +9,7 @@ API REST para gestión de productos desarrollada en .NET 8 con arquitectura limp
 - Entity Framework Core 8 + SQLite
 - Swagger / OpenAPI
 - MediatR (CQRS)
+- FluentValidation (validación de comandos con pipeline behavior)
 - Autenticación JWT Bearer
 - BCrypt.Net-Next
 
@@ -33,6 +34,7 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 - **`POST /api/products`** — Crear un producto (requiere rol Admin)
 - **`PUT /api/products/{id}`** — Actualizar un producto existente (requiere rol Admin)
 - **`DELETE /api/products/{id}`** — Eliminar un producto (requiere rol Admin)
+- **`POST /api/orders`** — Crear una orden de compra con productos (requiere autenticación)
 
 ### Ejemplos de uso
 
@@ -74,6 +76,18 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 ```
 
 **Eliminar producto** — `DELETE /api/products/{id}` (requiere rol Admin)
+
+**Crear orden** — `POST /api/orders` (requiere autenticación)
+```json
+{
+  "items": [
+    {
+      "productId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "quantity": 2
+    }
+  ]
+}
+```
 
 ## Cómo ejecutar el proyecto desde cero
 
@@ -142,37 +156,61 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 ECommerce.Api/
 ├── Controllers/
 │   ├── AuthController.cs
+│   ├── OrdersController.cs
 │   └── ProductsController.cs
 ├── Program.cs
 └── appsettings.json
 
 ECommerce.Application/
+├── Behaviors/
+│   └── ValidationBehavior.cs
 ├── DTOs/
 │   ├── CreateProductDto.cs
-│   ├── UpdateProductDto.cs
-│   └── ProductResponseDto.cs
+│   ├── LoginRequestDto.cs
+│   ├── ProductResponseDto.cs
+│   ├── RegisterRequestDto.cs
+│   └── UpdateProductDto.cs
 ├── Interfaces/
+│   ├── IOrderRepository.cs
 │   ├── IProductRepository.cs
 │   ├── IProductService.cs
-│   └── ITokenService.cs
+│   ├── ITokenService.cs
+│   └── IUserRepository.cs
 ├── Services/
 │   └── ProductService.cs
-└── Products/
-    ├── Commands/
-    │   ├── CreateProductCommand.cs
-    │   ├── CreateProductCommandHandler.cs
-    │   ├── UpdateProductCommand.cs
-    │   ├── UpdateProductCommandHandler.cs
-    │   ├── DeleteProductCommand.cs
-    │   └── DeleteProductCommandHandler.cs
-    └── Queries/
-        ├── GetAllProductsQuery.cs
-        ├── GetAllProductsQueryHandler.cs
-        ├── GetProductByIdQuery.cs
-        └── GetProductByIdQueryHandler.cs
+├── Auth/
+│   └── Commands/
+│       ├── LoginCommand.cs
+│       ├── LoginCommandHandler.cs
+│       ├── RegisterCommand.cs
+│       └── RegisterCommandHandler.cs
+├── Orders/
+│   ├── Commands/
+│   │   ├── CreateOrderCommand.cs
+│   │   └── CreateOrderCommandHandler.cs
+│   └── Validators/
+│       └── CreateOrderValidator.cs
+├── Products/
+│   ├── Commands/
+│   │   ├── CreateProductCommand.cs
+│   │   ├── CreateProductCommandHandler.cs
+│   │   ├── DeleteProductCommand.cs
+│   │   ├── DeleteProductCommandHandler.cs
+│   │   ├── UpdateProductCommand.cs
+│   │   └── UpdateProductCommandHandler.cs
+│   ├── Queries/
+│   │   ├── GetAllProductsQuery.cs
+│   │   ├── GetAllProductsQueryHandler.cs
+│   │   ├── GetProductByIdQuery.cs
+│   │   └── GetProductByIdQueryHandler.cs
+│   └── Validators/
+│       └── CreateProductValidator.cs
 
 ECommerce.Domain/
 └── Entities/
+    ├── Order.cs
+    ├── OrderItem.cs
+    ├── OrderStatus.cs
     ├── Product.cs
     └── User.cs
 
@@ -180,9 +218,12 @@ ECommerce.Infrastructure/
 ├── Persistence/
 │   ├── ApplicationDbContext.cs
 │   └── Configurations/
+│       ├── OrderConfiguration.cs
+│       ├── OrderItemConfiguration.cs
 │       ├── ProductConfiguration.cs
 │       └── UserConfiguration.cs
 ├── Repositories/
+│   ├── OrderRepository.cs
 │   ├── ProductRepository.cs
 │   └── UserRepository.cs
 ├── Services/
@@ -190,10 +231,18 @@ ECommerce.Infrastructure/
 └── Migrations/
 ```
 
+## Validación con FluentValidation
+
+Los comandos CQRS se validan automáticamente mediante un **pipeline behavior** de MediatR (`ValidationBehavior<TRequest, TResponse>`) que ejecuta los validadores de FluentValidation antes de llegar al handler.
+
+- `CreateProductValidator` — valida nombre, precio y stock al crear un producto.
+- `CreateOrderValidator` — valida que el usuario no sea vacío, que la orden tenga al menos un ítem, y que cada ítem tenga `ProductId` válido y `Quantity` entre 1 y 100.
+
 ## Dependencias principales
 
 - `Microsoft.AspNetCore.Authentication.JwtBearer`
 - `Microsoft.EntityFrameworkCore` / `Microsoft.EntityFrameworkCore.Sqlite`
 - `MediatR`
+- `FluentValidation` / `FluentValidation.DependencyInjectionExtensions`
 - `Swashbuckle.AspNetCore`
 - `BCrypt.Net-Next`
