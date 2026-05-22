@@ -1,6 +1,11 @@
 ﻿# ECommerce API
 
+Alumno: Marcos Gonzalez
+DNI: 4805233
+
 API REST para gestión de productos y órdenes de compra desarrollada en .NET 8 con arquitectura limpia (Clean Architecture), CQRS con MediatR, validación con FluentValidation, Entity Framework Core y SQLite.
+
+
 
 ## Stack tecnológico
 
@@ -34,6 +39,8 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 - **`POST /api/products`** — Crear un producto (requiere rol Admin)
 - **`PUT /api/products/{id}`** — Actualizar un producto existente (requiere rol Admin)
 - **`DELETE /api/products/{id}`** — Eliminar un producto (requiere rol Admin)
+- **`GET /api/orders`** — Listar todas las órdenes del usuario autenticado (requiere autenticación)
+- **`GET /api/orders/{id}`** — Obtener una orden específica por ID (requiere autenticación)
 - **`POST /api/orders`** — Crear una orden de compra con productos (requiere autenticación)
 
 ### Ejemplos de uso
@@ -76,6 +83,12 @@ Los controladores usan **MediatR** para enviar comandos y consultas. Cada operac
 ```
 
 **Eliminar producto** — `DELETE /api/products/{id}` (requiere rol Admin)
+
+**Listar órdenes** — `GET /api/orders` (requiere autenticación)
+Retorna todas las órdenes del usuario autenticado ordenadas por fecha más reciente.
+
+**Obtener orden por ID** — `GET /api/orders/{id}` (requiere autenticación)
+Retorna los detalles de una orden específica. Solo el propietario de la orden puede verla.
 
 **Crear orden** — `POST /api/orders` (requiere autenticación)
 ```json

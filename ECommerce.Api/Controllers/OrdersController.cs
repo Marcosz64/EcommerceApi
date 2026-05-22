@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ECommerce.Application.Orders.Commands;
+using ECommerce.Application.Orders.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,41 @@ public class OrdersController : ControllerBase
     public OrdersController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userIdValue is null)
+            return Unauthorized();
+
+        var userId = Guid.Parse(userIdValue);
+
+        var orders = await _mediator.Send(new GetAllOrdersQuery(userId), ct);
+        return Ok(orders);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userIdValue is null)
+            return Unauthorized();
+
+        var order = await _mediator.Send(new GetOrderByIdQuery(id), ct);
+
+        if (order is null)
+            return NotFound();
+
+        // Validar que la orden pertenece al usuario autenticado
+        var userId = Guid.Parse(userIdValue);
+        if (order.UserId != userId)
+            return Forbid();
+
+        return Ok(order);
     }
 
     [HttpPost]
